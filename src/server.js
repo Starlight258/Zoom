@@ -18,12 +18,22 @@ const httpServer = http.createServer(app); //express server
 const wsServer = SocketIO(httpServer); //socket.io server
 
 wsServer.on("connection", (socket) => {
+  socket.onAny((event) => {
+    console.log(`Socket event:${event}`);
+  });
   socket.on("enter_room", (roomName, done) => {
     //인자, done함수
-    console.log(roomName);
-    setTimeout(() => {
-      done("hello from the backend");
-    }, 15000);
+    socket.join(roomName); //방 만들기-이름 붙여짐
+    done();
+    socket.to(roomName).emit("welcome"); //그 방에 있는 모든 사람에게(나 제외) event
+    socket.on("disconnecting", () => {
+      console.log(socket.rooms);
+      socket.rooms.forEach((room) => socket.to(room).emit("bye")); //참여하고있던 모든 방에
+    });
+    socket.on("new_message", (msg, room, done) => {
+      socket.to(room).emit("new_message", msg);
+      done();
+    });
   });
 });
 // const sockets = []; //fake db
