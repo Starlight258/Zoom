@@ -17,6 +17,20 @@ const handleListen = () => console.log(`Listening on http://localhost:3000`);
 const httpServer = http.createServer(app); //express server
 const wsServer = SocketIO(httpServer); //socket.io server
 
+function publicRooms() {
+  const {
+    socket: {
+      adapter: { sids, rooms },
+    },
+  } = wsServer;
+  const publicRooms = [];
+  rooms.forEach((_, key) => {
+    if (sids.get(key) === undefined) {
+      //room이 sid에 없으면 public room
+      publicRooms.push(key);
+    }
+  });
+}
 wsServer.on("connection", (socket) => {
   socket.onAny((event) => {
     console.log(`Socket event:${event}`);
