@@ -21,17 +21,19 @@ wsServer.on("connection", (socket) => {
   socket.onAny((event) => {
     console.log(`Socket event:${event}`);
   });
-  socket.on("enter_room", (roomName, done) => {
+  socket.on("enter_room", (roomName, nickname, done) => {
     //인자, done함수
     socket.join(roomName); //방 만들기-이름 붙여짐
     done();
-    socket.to(roomName).emit("welcome"); //그 방에 있는 모든 사람에게(나 제외) event
+    socket.to(roomName).emit("welcome", nickname); //그 방에 있는 모든 사람에게(나 제외) event
     socket.on("disconnecting", () => {
       console.log(socket.rooms);
-      socket.rooms.forEach((room) => socket.to(room).emit("bye")); //참여하고있던 모든 방에
+      socket.rooms.forEach(
+        (room) => socket.to(room).emit("bye", nickname) //닉네임추가
+      ); //참여하고있던 모든 방에
     });
     socket.on("new_message", (msg, room, done) => {
-      socket.to(room).emit("new_message", msg);
+      socket.to(room).emit("new_message", `${nickname}: ${msg}`);
       done();
     });
   });
