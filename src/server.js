@@ -17,41 +17,41 @@ const handleListen = () => console.log(`Listening on http://localhost:3000`);
 const httpServer = http.createServer(app); //express server
 const wsServer = SocketIO(httpServer); //socket.io server
 
-function publicRooms() {
-  const {
-    socket: {
-      adapter: { sids, rooms },
-    },
-  } = wsServer;
-  const publicRooms = [];
-  rooms.forEach((_, key) => {
-    if (sids.get(key) === undefined) {
-      //room이 sid에 없으면 public room
-      publicRooms.push(key);
-    }
-  });
-}
-wsServer.on("connection", (socket) => {
-  socket.onAny((event) => {
-    console.log(`Socket event:${event}`);
-  });
-  socket.on("enter_room", (roomName, nickname, done) => {
-    //인자, done함수
-    socket.join(roomName); //방 만들기-이름 붙여짐
-    done();
-    socket.to(roomName).emit("welcome", nickname); //그 방에 있는 모든 사람에게(나 제외) event
-    socket.on("disconnecting", () => {
-      console.log(socket.rooms);
-      socket.rooms.forEach(
-        (room) => socket.to(room).emit("bye", nickname) //닉네임추가
-      ); //참여하고있던 모든 방에
-    });
-    socket.on("new_message", (msg, room, done) => {
-      socket.to(room).emit("new_message", `${nickname}: ${msg}`);
-      done();
-    });
-  });
-});
+// function publicRooms() {
+//   const {
+//     socket: {
+//       adapter: { sids, rooms },
+//     },
+//   } = wsServer;
+//   const publicRooms = [];
+//   rooms.forEach((_, key) => {
+//     if (sids.get(key) === undefined) {
+//       //room이 sid에 없으면 public room
+//       publicRooms.push(key);
+//     }
+//   });
+// }
+// wsServer.on("connection", (socket) => {
+//   socket.onAny((event) => {
+//     console.log(`Socket event:${event}`);
+//   });
+//   socket.on("enter_room", (roomName, nickname, done) => {
+//     //인자, done함수
+//     socket.join(roomName); //방 만들기-이름 붙여짐
+//     done();
+//     socket.to(roomName).emit("welcome", nickname); //그 방에 있는 모든 사람에게(나 제외) event
+//     socket.on("disconnecting", () => {
+//       console.log(socket.rooms);
+//       socket.rooms.forEach(
+//         (room) => socket.to(room).emit("bye", nickname) //닉네임추가
+//       ); //참여하고있던 모든 방에
+//     });
+//     socket.on("new_message", (msg, room, done) => {
+//       socket.to(room).emit("new_message", `${nickname}: ${msg}`);
+//       done();
+//     });
+//   });
+// });
 // const sockets = []; //fake db
 
 // wss.on("connection", (socket) => {
