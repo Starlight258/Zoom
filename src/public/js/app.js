@@ -5,10 +5,14 @@ const myFace = document.getElementById("myFace");
 const muteBtn = document.getElementById("mute"); //음소거 버튼
 const cameraBtn = document.getElementById("camera"); //카메라 버튼
 const camerasSelect = document.getElementById("cameras"); //카메라 버튼
+const call = document.getElementById("call");
+
+call.hidden = true;
 
 let myStream;
 let muted = false; //초기상태
 let cameraOff = false;
+let roomName;
 
 async function getCameras() {
   //카메라 리스트로 보여줌
@@ -57,7 +61,7 @@ async function getMedia(deviceId) {
   }
 }
 
-getMedia();
+// getMedia();
 
 function handleMuteClick() {
   myStream
@@ -152,3 +156,30 @@ camerasSelect.addEventListener("input", handleCameraChange);
 //   addMessage(`${left} left ㅠㅠ`);
 // });
 // socket.on("new_message", (msg) => addMessage(msg));
+
+///Welcome Form (join a room)
+const welcome = document.getElementById("welcome");
+const welcomeForm = welcome.querySelector("form");
+
+function startMedia() {
+  welcome.hidden = true; //방 입력 창 숨김
+  call.hidden = false; //call 보여줌
+  getMedia();
+}
+
+function handleWelcomeSubmit(event) {
+  //제출 버튼 누를때
+  event.preventDefault();
+  const input = welcomeForm.querySelector("input");
+  socket.emit("join_room", input.value, startMedia); //소켓 보내기
+  roomName = input.value; //방 이름
+  input.value = "";
+}
+
+welcomeForm.addEventListener("submit", handleWelcomeSubmit);
+
+//Socket Code
+socket.on("welcome", () => {
+  //방 들어왔을때
+  console.log("someone joined");
+});

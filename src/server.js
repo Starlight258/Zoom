@@ -17,6 +17,15 @@ const handleListen = () => console.log(`Listening on http://localhost:3000`);
 const httpServer = http.createServer(app); //express server
 const wsServer = SocketIO(httpServer); //socket.io server
 
+wsServer.on("connection", (socket) => {
+  socket.on("join_room", (roomName, done) => {
+    //방 참여
+    socket.join(roomName);
+    done();
+    socket.to(roomName).emit("welcome");
+  });
+});
+
 // function publicRooms() {
 //   const {
 //     socket: {
