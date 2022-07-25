@@ -25,7 +25,7 @@ wsServer.on("connection", (socket) => {
     socket.to(roomName).emit("welcome");
   });
   socket.on("offer", (offer, roomName) => {
-    socket.to(roomName).emit("offer", offer); //offer 전송
+    socket.to(roomName).emit("offer", offer); //모든 방 인원에게 offer 보내기
   });
 });
 

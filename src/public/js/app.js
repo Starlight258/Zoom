@@ -35,7 +35,7 @@ async function getCameras() {
     console.log(e);
   }
 }
-
+//카메라, 오디오 가져오기
 async function getMedia(deviceId) {
   const initialConstrains = {
     //초기 설정, 셀카 모드
@@ -165,8 +165,8 @@ const welcomeForm = welcome.querySelector("form");
 async function startMedia() {
   welcome.hidden = true; //방 입력 창 숨김
   call.hidden = false; //call 보여줌
-  await getMedia();
-  makeConnection();
+  await getMedia(); //카메라,오디오 가져오기
+  makeConnection(); //연결 만들기
 }
 
 function handleWelcomeSubmit(event) {
@@ -182,11 +182,11 @@ welcomeForm.addEventListener("submit", handleWelcomeSubmit);
 
 //Socket Code
 socket.on("welcome", async () => {
-  //방 들어왔을때
-  const offer = await myPeerConnection.createOffer(); //offer만들기
-  myPeerConnection.setLocalDescrpition(offer); //offer로 연결만들기
-  console.log("send the offer");
-  socket.emit("offer", offer, roomName); //offer를 서버로 보내기
+  //다른 브라우저가 방 들어왔을때
+  const offer = await myPeerConnection.createOffer(); //초대장 만들기
+  myPeerConnection.setLocalDescription(offer); //offer로 연결 구성
+  console.log("sent the offer");
+  socket.emit("offer", offer, roomName); //초대장 보내기
 });
 socket.on("offer", (offer) => {
   console.log(offer);
@@ -194,8 +194,8 @@ socket.on("offer", (offer) => {
 
 //RTC Code
 function makeConnection() {
-  const myPeerConnection = new RTCPeerConnection(); //연결 만들기
+  myPeerConnection = new RTCPeerConnection(); //연결만들기
   myStream
     .getTracks()
-    .forEach((track) => myPeerConnection.addTrack(track, myStream)); //video, audio stream 추가
+    .forEach((track) => myPeerConnection.addTrack(track, myStream)); //카메라,마이크 데이터 stream 연결
 }
