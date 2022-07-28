@@ -14,6 +14,7 @@ let muted = false; //초기상태
 let cameraOff = false;
 let roomName;
 let myPeerConnection;
+let myDataChannel;
 
 async function getCameras() {
   //카메라 리스트로 보여줌
@@ -92,7 +93,14 @@ function handleCameraClick() {
   }
 }
 async function handleCameraChange() {
-  await getMedia(camerasSelect.value);
+  await getMedia(camerasSelect.value); //stream 새로 받음
+  if (myPeerConnection) {
+    const videoTrack = myStream.getVideoTracks()[0];
+    const videoSender = myPeerConnection
+      .getSenders()
+      .find((sender) => sender.track.kind === "video");
+    videoSender.replaceTrack(videoTrack); //새로운 카메라로 바꿔주기
+  }
 }
 
 muteBtn.addEventListener("click", handleMuteClick);
@@ -162,40 +170,89 @@ camerasSelect.addEventListener("input", handleCameraChange);
 const welcome = document.getElementById("welcome");
 const welcomeForm = welcome.querySelector("form");
 
-async function startMedia() {
+async function initCall() {
   welcome.hidden = true; //방 입력 창 숨김
   call.hidden = false; //call 보여줌
   await getMedia(); //카메라,오디오 가져오기
   makeConnection(); //연결 만들기
 }
 
-function handleWelcomeSubmit(event) {
+async function handleWelcomeSubmit(event) {
   //제출 버튼 누를때
   event.preventDefault();
   const input = welcomeForm.querySelector("input");
-  socket.emit("join_room", input.value, startMedia); //소켓 보내기
+  await initCall();
+  socket.emit("join_room", input.value); //소켓 보내기
   roomName = input.value; //방 이름
   input.value = "";
 }
 
 welcomeForm.addEventListener("submit", handleWelcomeSubmit);
-
-//Socket Code
+//A -> B
+//Socket Code, Peer A(송신자)
 socket.on("welcome", async () => {
+  myDataChannel = myPeerConnection.createDataChannel("chat"); //data channel
+  myDataChannel.addEventListener("message", console.log);
+  console.log("made data channel");
   //다른 브라우저가 방 들어왔을때
   const offer = await myPeerConnection.createOffer(); //초대장 만들기
   myPeerConnection.setLocalDescription(offer); //offer로 연결 구성
   console.log("sent the offer");
   socket.emit("offer", offer, roomName); //초대장 보내기
 });
-socket.on("offer", (offer) => {
-  console.log(offer);
+//Peer B(수신자)
+socket.on("offer", async (offer) => {
+  myPeerConnection.addEventListener("datachannel", (event) => {
+    myDataChannel = event.channel;
+    myDataChannel.addEventListener("message", (event) =>
+      console.log(event.data)
+    );
+  });
+  console.log("recieved the offer");
+  myPeerConnection.setRemoteDescription(offer);
+  const answer = await myPeerConnection.createAnswer(); //answer만들기
+  myPeerConnection.setLocalDescription(answer); //answer로 연결 구성
+  socket.emit("answer", answer, roomName);
+  console.log("sent the answer");
+});
+socket.on("answer", (answer) => {
+  console.log("recieved the answer");
+  myPeerConnection.setRemoteDescription(answer);
+});
+socket.on("ice", (ice) => {
+  console.log("received candidate");
+  myPeerConnection.addIceCandidate(ice);
 });
 
-//RTC Code
+//RTC Code,
 function makeConnection() {
-  myPeerConnection = new RTCPeerConnection(); //연결만들기
+  myPeerConnection = new RTCPeerConnection({
+    iceServers: [
+      //STUN 서버: 공용주소 알려줌, 나중에 직점 만들기
+      {
+        urls: [
+          "stun:stun.l.google.com:19302",
+          "stun:stun1.l.google.com:19302",
+          "stun:stun2.l.google.com:19302",
+          "stun:stun3.l.google.com:19302",
+          "stun:stun4.l.google.com:19302",
+        ],
+      },
+    ],
+  }); //연결만들기
+  myPeerConnection.addEventListener("icecandidate", handleIce); //인터넷 연결 생성
+  myPeerConnection.addEventListener("addstream", handleAddStream);
   myStream
     .getTracks()
     .forEach((track) => myPeerConnection.addTrack(track, myStream)); //카메라,마이크 데이터 stream 연결
+}
+
+function handleIce(data) {
+  console.log("sent candidate");
+  socket.emit("ice", data.candidate, roomName); //candidate 보내기
+}
+function handleAddStream(data) {
+  const peerFace = document.getElementById("peerFace");
+  // console.log("Peer's Stream", data.stream); //stream 전달받음
+  peerFace.srcObject = data.stream; //비디오 표시하기
 }
